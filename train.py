@@ -143,10 +143,22 @@ def test(ctx, acc_top1,acc_top5,val_data,batch_fn,net):
     _, top5 = acc_top5.get()
     return (1-top1, 1-top5)
 
+def _validate_path(path, description):
+    """Resolve and validate that a path stays within the current working directory."""
+    resolved = os.path.realpath(path)
+    cwd = os.path.realpath(os.getcwd())
+    if not resolved.startswith(cwd + os.sep) and resolved != cwd:
+        raise ValueError(
+            f"{description} path '{path}' resolves outside the working directory."
+        )
+    return resolved
+
+
 def main():
     opt = parse_args()
 
-    filehandler=logging.FileHandler(opt.logging_file,mode='w')
+    log_path = _validate_path(opt.logging_file, '--logging-file')
+    filehandler=logging.FileHandler(log_path,mode='w')
     streamhandler=logging.StreamHandler()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
@@ -166,7 +178,7 @@ def main():
 
     save_frequency = opt.save_frequency
     if opt.save_dir and save_frequency:
-        save_dir = opt.save_dir
+        save_dir = _validate_path(opt.save_dir, '--save-dir')
         makedirs(save_dir)
     else:
         save_dir = ''
